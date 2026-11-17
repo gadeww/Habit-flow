@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Flow</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101322;
+    color: white;
+    padding: 35px 20px;
+}
+
+.container {
+    max-width: 700px;
+    margin: auto;
+}
+
+h1 {
+    font-size: 34px;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: #a5aac0;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: #1b2035;
+    border: 1px solid #303750;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    height: 12px;
+    background: #303750;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #8b7cff;
+    transition: 0.3s;
+}
+
+.add-form {
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px;
+    border-radius: 9px;
+    border: 1px solid #39415e;
+    background: #101322;
+    color: white;
+    font-size: 15px;
+}
+
+button {
+    border: none;
+    border-radius: 9px;
+    padding: 12px 17px;
+    background: #8171f5;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #9a8cff;
+}
+
+.habit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 0;
+    border-bottom: 1px solid #303750;
+}
+
+.habit:last-child {
+    border-bottom: none;
+}
+
+.habit input {
+    flex: none;
+    width: 19px;
+    height: 19px;
+    accent-color: #8b7cff;
+}
+
+.habit span {
+    flex: 1;
+}
+
+.habit.done span {
+    color: #858ba4;
+    text-decoration: line-through;
+}
+
+.delete {
+    background: #343950;
+    padding: 8px 12px;
+}
+
+.empty {
+    color: #9299b1;
+    text-align: center;
+    padding: 20px 0;
+}
+
+footer {
+    text-align: center;
+    color: #777f99;
+    margin-top: 25px;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>✨ Habit Flow</h1>
+    <p class="subtitle">Маленькие шаги — большие результаты</p>
+
+    <div class="card">
+        <div class="progress-info">
+            <strong>Прогресс за сегодня</strong>
+            <span id="progressText">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Добавить привычку</h2>
+        <div class="add-form">
+            <input id="habitInput"
+                   placeholder="Например, читать 20 минут">
+            <button onclick="addHabit()">Добавить</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Мои привычки</h2>
+        <div id="habitList"></div>
+    </div>
+
+    <footer>
+        Habit Flow — учебный проект
+    </footer>
+
+</div>
+
+<script>
+let habits = JSON.parse(
+    localStorage.getItem("habits") || "[]"
+);
+
+function saveHabits() {
+    localStorage.setItem("habits", JSON.stringify(habits));
+}
+
+function addHabit() {
+    const input = document.getElementById("habitInput");
+    const name = input.value.trim();
+
+    if (!name) {
+        alert("Введите название привычки!");
+        return;
+    }
+
+    habits.push({
+        id: Date.now(),
+        name: name,
+        completed: false
+    });
+
+    input.value = "";
+    saveHabits();
+    renderHabits();
+}
+
+function toggleHabit(id) {
+    habits = habits.map(h => {
+        if (h.id === id) {
+            return {
+                ...h,
+                completed: !h.completed
+            };
+        }
+        return h;
+    });
+
+    saveHabits();
+    renderHabits();
+}
+
+function deleteHabit(id) {
+    habits = habits.filter(h => h.id !== id);
+    saveHabits();
+    renderHabits();
+}
+
+function renderHabits() {
+    const list = document.getElementById("habitList");
+
+    list.innerHTML = "";
+
+    if (habits.length === 0) {
+        list.innerHTML =
+            '<div class="empty">Пока нет привычек. Добавьте первую!</div>';
+    }
+
+    habits.forEach(habit => {
+        const item = document.createElement("div");
+
+        item.className = "habit" +
+            (habit.completed ? " done" : "");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = habit.completed;
+        checkbox.addEventListener("change", () =>
+            toggleHabit(habit.id)
+        );
+
+        const name = document.createElement("span");
+        name.textContent = habit.name;
+
+        const remove = document.createElement("button");
+        remove.className = "delete";
+        remove.textContent = "Удалить";
+        remove.addEventListener("click", () =>
+            deleteHabit(habit.id)
+        );
+
+        item.append(checkbox, name, remove);
+        list.appendChild(item);
+    });
+
+    const completed = habits.filter(h => h.completed).length;
+    const total = habits.length;
+
+    const percent = total === 0
+        ? 0
+        : Math.round(completed / total * 100);
+
+    document.getElementById("progressText").textContent =
+        percent + "%";
+
+    document.getElementById("progressFill").style.width =
+        percent + "%";
+}
+
+renderHabits();
+</script>
+</body>
+</html>
